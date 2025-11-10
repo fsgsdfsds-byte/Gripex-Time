@@ -6,6 +6,7 @@
   <title>分天课表 - 有道领世课表1.0pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -77,6 +78,11 @@
           <div>
             <h2 class="text-[clamp(2.5rem,5vw,4rem)] font-bold text-white">周五英才班体验课</h2>
           </div>
+          <div>
+            <button id="downloadFridayBtn" class="bg-white text-primary font-bold py-3 px-6 rounded-full flex items-center shadow-lg hover:bg-gray-100">
+              <i class="fa fa-download mr-2"></i> 下载周五课表
+            </button>
+          </div>
         </div>
         
         <!-- 教师课程卡片区域 -->
@@ -105,6 +111,11 @@
         <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
           <div>
             <h2 class="text-[clamp(2.5rem,5vw,4rem)] font-bold text-white">周六英才班体验课</h2>
+          </div>
+          <div>
+            <button id="downloadSaturdayBtn" class="bg-white text-primary font-bold py-3 px-6 rounded-full flex items-center shadow-lg hover:bg-gray-100">
+              <i class="fa fa-download mr-2"></i> 下载周六课表
+            </button>
           </div>
         </div>
         
@@ -246,34 +257,94 @@
       }
     }
     
-    // 下载功能已移除
-      /* function initDownloadButtons() {
+    // 初始化下载按钮
+    function initDownloadButtons() {
       var fridayBtn = document.getElementById('downloadFridayBtn');
       var saturdayBtn = document.getElementById('downloadSaturdayBtn');
-      var allBtn = document.getElementById('downloadAllBtn');
       
       if (fridayBtn) {
         fridayBtn.onclick = function() {
-          alert('周五课表下载功能已就绪');
-          downloadDayContent('周五');
+          downloadDayScheduleImage('周五');
         };
       }
       
       if (saturdayBtn) {
         saturdayBtn.onclick = function() {
-          alert('周六课表下载功能已就绪');
-          downloadDayContent('周六');
-        };
-      }
-      
-      if (allBtn) {
-        allBtn.onclick = function() {
-          alert('全部课表下载功能已就绪');
-          downloadAllContent();
+          downloadDayScheduleImage('周六');
         };
       }
     }
-      */
+    
+    // 下载单天课表图片
+    function downloadDayScheduleImage(day) {
+      var scheduleDiv = document.getElementById(day === '周五' ? 'fridaySchedule' : 'saturdaySchedule');
+      if (!scheduleDiv) {
+        alert('无法找到课表元素');
+        return;
+      }
+      
+      // 创建克隆容器
+      var clone = scheduleDiv.cloneNode(true);
+      clone.id = day + 'Clone';
+      clone.style.position = 'absolute';
+      clone.style.left = '-9999px';
+      clone.style.top = '-9999px';
+      clone.style.width = scheduleDiv.offsetWidth + 'px';
+      clone.style.height = scheduleDiv.offsetHeight + 'px';
+      clone.style.pointerEvents = 'none';
+      document.body.appendChild(clone);
+      
+      // 确保克隆元素可见
+      clone.style.visibility = 'visible';
+      clone.style.opacity = '1';
+      
+      // 配置html2canvas选项
+      var html2canvasOptions = {
+        backgroundColor: '#ffffff',
+        scale: 1,
+        useCORS: true,
+        imageTimeout: 15000,
+        width: clone.offsetWidth,
+        height: clone.offsetHeight,
+        removeContainer: false,
+        delay: 100
+      };
+      
+      // 等待图片加载完成
+      var images = clone.querySelectorAll('img');
+      var promises = Array.from(images).map(function(img) {
+        return new Promise(function(resolve) {
+          if (img.complete) {
+            resolve();
+          } else {
+            img.onload = resolve;
+            img.onerror = resolve; // 即使图片加载失败也继续
+          }
+        });
+      });
+      
+      Promise.all(promises).then(function() {
+        // 延迟执行确保所有元素都已渲染
+        setTimeout(function() {
+          html2canvas(clone, html2canvasOptions).then(function(canvas) {
+            // 将canvas转换为图片下载
+            var link = document.createElement('a');
+            link.download = day + '课表.png';
+            link.href = canvas.toDataURL('image/png');
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // 移除克隆容器
+            document.body.removeChild(clone);
+          }).catch(function(error) {
+            console.error('截图失败:', error);
+            alert('截图失败，请重试');
+            document.body.removeChild(clone);
+          });
+        }, 100);
+      });
+    }
       
       // 下载单天内容（已禁用）
     function downloadDayContent(day) {
@@ -323,8 +394,8 @@
         generateDaySchedule('周六', saturdayTeachers, data.teacherInfo);
       }
       
-      // 初始化下载按钮（已移除）
-      // initDownloadButtons();
+      // 初始化下载按钮
+      initDownloadButtons();
     };
   </script>
 </body>
