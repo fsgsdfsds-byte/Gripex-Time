@@ -976,49 +976,41 @@
         
         const previewContainer = document.getElementById('previewContainer');
         
-        // 等待所有图片加载完成后再绘制
-        const images = previewContainer.querySelectorAll('img');
-        const imageLoadPromises = Array.from(images).map(img => {
-          return new Promise((resolve, reject) => {
-            if (img.complete && img.naturalHeight > 0) {
-              // 图片已经加载完成
-              resolve(img);
-            } else {
-              // 图片尚未加载完成，设置加载事件
-              img.onload = () => resolve(img);
-              img.onerror = reject;
-            }
-          });
-        });
+        // 创建预览容器的克隆，在克隆的容器上进行截图
+        const cloneContainer = previewContainer.cloneNode(true);
+        // 设置克隆容器的样式
+        cloneContainer.style.position = 'absolute';
+        cloneContainer.style.top = '-9999px';
+        cloneContainer.style.left = '-9999px';
+        cloneContainer.style.width = previewContainer.offsetWidth + 'px';
+        cloneContainer.style.height = previewContainer.offsetHeight + 'px';
+        cloneContainer.style.visibility = 'visible';
+        cloneContainer.style.opacity = '1';
         
-        // 等待所有图片加载完成
-        Promise.all(imageLoadPromises).then(() => {
-          console.log('所有图片加载完成，开始生成截图');
+        // 将克隆容器添加到文档中
+        document.body.appendChild(cloneContainer);
+        
+        // 等待图片加载完成
+        setTimeout(() => {
+          console.log('开始生成截图');
           
-          // 使用优化的配置，确保在Netlify上正常工作
+          // 使用最基本的配置，确保兼容性
           const html2canvasOptions = {
             backgroundColor: '#ffffff',
-            scale: 2,
+            scale: 1,
             useCORS: true,
             allowTaint: true,
             logging: false,
-            removeContainer: false,
-            imageTimeout: 15000,
-            windowWidth: previewContainer.scrollWidth,
-            windowHeight: previewContainer.scrollHeight,
-            // 移除ignoreElements以确保所有元素都被正确捕捉
-            // 添加对Tailwind CSS的支持
-            letterRendering: true,
-            foreignObjectRendering: true,
-            preserveDrawingBuffer: true,
-            // 确保正确处理z-index
-            useTransform: true,
-            // 确保正确处理定位元素
-            allowForeignObjectTaint: true
+            // 不使用复杂配置
+            width: cloneContainer.offsetWidth,
+            height: cloneContainer.offsetHeight,
+            delay: 0
           };
           
-          // 图片加载完成后绘制
-          html2canvas(previewContainer, html2canvasOptions).then(canvas => {
+          // 在克隆容器上执行截图
+          html2canvas(cloneContainer, html2canvasOptions).then(canvas => {
+            // 移除克隆容器
+            document.body.removeChild(cloneContainer);
             // 核心功能：使用toDataURL + 创建a链接
             function triggerDownload() {
               // 使用toDataURL获取图片数据
