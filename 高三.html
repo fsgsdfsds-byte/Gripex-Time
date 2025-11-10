@@ -1002,16 +1002,19 @@
             useCORS: true,
             allowTaint: true,
             logging: false,
-            removeContainer: true,
+            removeContainer: false,
             imageTimeout: 15000,
             windowWidth: previewContainer.scrollWidth,
             windowHeight: previewContainer.scrollHeight,
-            ignoreElements: (element) => {
-              // 忽略可能导致问题的元素
-              return element.tagName.toLowerCase() === 'script' || 
-                     element.tagName.toLowerCase() === 'style' ||
-                     element.style.position === 'fixed';
-            }
+            // 移除ignoreElements以确保所有元素都被正确捕捉
+            // 添加对Tailwind CSS的支持
+            letterRendering: true,
+            foreignObjectRendering: true,
+            preserveDrawingBuffer: true,
+            // 确保正确处理z-index
+            useTransform: true,
+            // 确保正确处理定位元素
+            allowForeignObjectTaint: true
           };
           
           // 图片加载完成后绘制
