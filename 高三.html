@@ -935,34 +935,51 @@
       showSuccessToast('课表生成成功！');
     }
     
-    // 成功提示函数
+    // 显示通知提示函数
     function showSuccessToast(message) {
-      // 创建toast元素
+      // 创建通知元素
       const toast = document.createElement('div');
+      
+      // 设置基础样式
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 6px;
+        color: white;
+        font-size: 14px;
+        font-weight: 500;
+        z-index: 999999;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        transition: all 0.3s ease;
+        transform: translateX(100%);
+        opacity: 0;
+        background-color: #10B981;
+      `;
+      
+      // 设置消息内容
       toast.textContent = message || '操作成功！';
-      toast.style.position = 'fixed';
-      toast.style.bottom = '20px';
-      toast.style.left = '50%';
-      toast.style.transform = 'translateX(-50%)';
-      toast.style.backgroundColor = 'rgba(0, 128, 0, 0.8)';
-      toast.style.color = 'white';
-      toast.style.padding = '10px 20px';
-      toast.style.borderRadius = '4px';
-      toast.style.zIndex = '9999';
-      toast.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
-      toast.style.fontSize = '14px';
       
       // 添加到页面
       document.body.appendChild(toast);
       
-      // 2秒后自动移除
+      // 显示动画
       setTimeout(() => {
+        toast.style.transform = 'translateX(0)';
+        toast.style.opacity = '1';
+      }, 10);
+      
+      // 3秒后自动隐藏
+      setTimeout(() => {
+        toast.style.transform = 'translateX(100%)';
         toast.style.opacity = '0';
-        toast.style.transition = 'opacity 0.5s';
         setTimeout(() => {
-          document.body.removeChild(toast);
-        }, 500);
-      }, 2000);
+          if (document.body.contains(toast)) {
+            document.body.removeChild(toast);
+          }
+        }, 300);
+      }, 3000);
     }
     
     // 下载图片 - 使用toDataURL + 创建a链接方案
@@ -971,7 +988,7 @@
         // 确保预览已更新
         updatePreview();
         
-        // 显示提示（使用更友好的提示方式）
+        // 显示提示
         showSuccessToast('请稍候，正在准备下载...');
         
         const previewContainer = document.getElementById('previewContainer');
@@ -987,6 +1004,18 @@
         cloneContainer.style.visibility = 'visible';
         cloneContainer.style.opacity = '1';
         
+        // 移除克隆容器中所有的按钮，确保不会出现在截图中
+        const buttons = cloneContainer.querySelectorAll('button');
+        buttons.forEach(button => {
+          button.remove();
+        });
+        
+        // 移除克隆容器中所有的下载相关元素
+        const downloadElements = cloneContainer.querySelectorAll('[id*="download"],[class*="download"],[id*="btn"],[class*="btn"]');
+        downloadElements.forEach(element => {
+          element.remove();
+        });
+        
         // 将克隆容器添加到文档中
         document.body.appendChild(cloneContainer);
         
@@ -994,27 +1023,31 @@
         setTimeout(() => {
           console.log('开始生成截图');
           
-          // 使用最基本的配置，确保兼容性
+          // 优化配置，提高图片清晰度
           const html2canvasOptions = {
             backgroundColor: '#ffffff',
-            scale: 1,
+            scale: 3, // 提高缩放比例到3，大幅增加清晰度
             useCORS: true,
             allowTaint: true,
             logging: false,
-            // 不使用复杂配置
             width: cloneContainer.offsetWidth,
             height: cloneContainer.offsetHeight,
-            delay: 0
+            delay: 300, // 增加延迟确保渲染完成
+            imageTimeout: 20000,
+            removeContainer: false,
+            windowWidth: previewContainer.scrollWidth,
+            windowHeight: previewContainer.scrollHeight
           };
           
           // 在克隆容器上执行截图
           html2canvas(cloneContainer, html2canvasOptions).then(canvas => {
             // 移除克隆容器
             document.body.removeChild(cloneContainer);
+            
             // 核心功能：使用toDataURL + 创建a链接
             function triggerDownload() {
-              // 使用toDataURL获取图片数据
-              const imgData = canvas.toDataURL('image/png');
+              // 使用toDataURL获取高质量图片数据
+              const imgData = canvas.toDataURL('image/png', 0.95); // 设置高质量参数
               
               // 创建下载链接元素
               const downloadLink = document.createElement('a');
@@ -1047,6 +1080,7 @@
             // 尝试触发下载
             try {
               triggerDownload();
+              showSuccessToast('图片下载成功！');
             } catch (e) {
               console.error('自动下载失败:', e);
               
@@ -1069,7 +1103,7 @@
               `;
               
               const img = document.createElement('img');
-              img.src = canvas.toDataURL('image/png');
+              img.src = canvas.toDataURL('image/png', 0.95);
               img.style.maxWidth = '100%';
               img.style.maxHeight = '70vh';
               img.style.border = '1px solid #ddd';
@@ -1118,11 +1152,12 @@
           }).catch(error => {
             console.error('截图生成失败:', error);
             alert('截图生成失败，请重试');
+            // 确保移除克隆容器
+            if (document.body.contains(cloneContainer)) {
+              document.body.removeChild(cloneContainer);
+            }
           });
-        }).catch(error => {
-          console.error('图片加载失败:', error);
-          alert('部分图片加载失败，请刷新页面重试');
-        });
+        }, 300); // 增加初始延迟确保所有元素准备就绪
       } catch (error) {
         console.error('下载过程出错:', error);
         alert('操作失败，请重试');
